@@ -22,6 +22,7 @@ export 'core/safe_zone.dart';
 export 'core/safe_zone_life_cycle.dart';
 export 'core/session.dart';
 export 'core/session_socket.dart';
+export 'core/session_socket_v2.dart';
 export 'core/session_target.dart';
 export 'core/socket_target.dart';
 export 'core/storage_pointycastle.dart';
