@@ -1,11 +1,7 @@
 extension IndonesiaTime on DateTime {
-  // --- Core: konversi ke "lokal" dengan offset jam tertentu (isUtc: false) ---
+  // Konversi zona: hasilkan DateTime "lokal" (isUtc: false) pada offset tertentu
   DateTime _inOffset(int hours) {
-    final utc = toUtc();
-    final ms =
-        utc.millisecondsSinceEpoch + Duration(hours: hours).inMilliseconds;
-    // penting: bikin DateTime non-UTC
-    return DateTime.fromMillisecondsSinceEpoch(ms, isUtc: false);
+    return toUtc().add(Duration(hours: hours));
   }
 
   DateTime toWib() => _inOffset(7);
@@ -37,11 +33,11 @@ extension IndonesiaTime on DateTime {
     'Minggu',
   ];
 
+  // ignore: non_constant_identifier_names
   static String _2(int n) => n.toString().padLeft(2, '0');
 
   String _format(DateTime dt, String zona) {
-    final hari =
-        _hari[dt.weekday - 1]; // Monday=1..Sunday=7 → list di atas sudah pas
+    final hari = _hari[dt.weekday - 1]; // <-- fix
     final bulan = _bulan[dt.month - 1];
     return '$hari, ${dt.day} $bulan ${dt.year}, '
         '${_2(dt.hour)}:${_2(dt.minute)}:${_2(dt.second)} $zona';
@@ -52,12 +48,10 @@ extension IndonesiaTime on DateTime {
     return withSeconds ? '$hhmm:${_2(dt.second)} $zona' : '$hhmm $zona';
   }
 
-  // --- Full datetime (ID) ---
   String toWibString() => _format(toWib(), 'WIB');
   String toWitaString() => _format(toWita(), 'WITA');
   String toWitString() => _format(toWit(), 'WIT');
 
-  // --- Time-only (ID) ---
   String toWibTimeString({bool withSeconds = true}) =>
       _formatTime(toWib(), 'WIB', withSeconds: withSeconds);
   String toWitaTimeString({bool withSeconds = true}) =>
@@ -65,7 +59,7 @@ extension IndonesiaTime on DateTime {
   String toWitTimeString({bool withSeconds = true}) =>
       _formatTime(toWit(), 'WIT', withSeconds: withSeconds);
 
-  // Formatter generik untuk zona custom
+  // Bonus: formatter generik kalau butuh zona custom
   String toIndonesiaStringWithOffset(
     int hours,
     String label, {
@@ -78,21 +72,23 @@ extension IndonesiaTime on DateTime {
         : _format(dt, label);
   }
 
-  /// Timestamp simpel "YYYY-MM-DD HH:mm:ss".
-  /// - forceWIB=true → pakai WIB
-  /// - forceWIB=false → pakai UTC (biar konsisten untuk logging/DB)
   String formatTs({bool forceWIB = false}) {
-    final d = forceWIB ? toWib() : toUtc();
+    // WIB = UTC+7. Kalau mau paksa WIB, konversi dari UTC dulu.
+    final d = forceWIB ? toUtc().add(const Duration(hours: 7)) : toUtc();
     String two(int n) => n < 10 ? '0$n' : '$n';
     return '${d.year}-${two(d.month)}-${two(d.day)} '
         '${two(d.hour)}:${two(d.minute)}:${two(d.second)}';
   }
 
-  /// Cantik: "YYYY-MM-DD HH:mm:ss" pakai waktu lokal device.
   String pretty() {
-    return toLocal().toIso8601String().split('.').first.replaceFirst('T', ' ');
+    return toLocal()
+        .toIso8601String() // 2025-09-16T17:35:17.755579
+        .split('.')
+        .first // 2025-09-16T17:35:17
+        .replaceFirst('T', ' '); // 2025-09-16 17:35:17
   }
 
-  /// Truncate ke tanggal (00:00:00) di zona objek ini.
-  DateTime pret() => DateTime(year, month, day);
+  DateTime pret() {
+    return DateTime(year, month, day);
+  }
 }
