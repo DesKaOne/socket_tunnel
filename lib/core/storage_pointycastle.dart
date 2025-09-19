@@ -35,10 +35,14 @@ class Storage {
   // ===================== init =====================
 
   Future<void> initialize() async {
-    _key = BytesExt.fromHex(keyHex); // <- beneran bytes AES
+    _key = BytesExt.fromHex(keyHex);
     if (!(_key.length == 16 || _key.length == 24 || _key.length == 32)) {
       throw ArgumentError('Panjang key harus 16/24/32 byte (32/48/64 hex).');
     }
+
+    // pastikan folder untuk file utama & backup ada
+    await _ensureParentDir(filePath);
+    await _ensureParentDir(_backupPath);
 
     Uint8List? blob;
     final f = File(filePath);
@@ -51,7 +55,6 @@ class Storage {
         return;
       } catch (e) {
         logger?.error('[Storage] Decrypt utama gagal: $e');
-        // coba backup
         final fb = File(_backupPath);
         if (await fb.exists()) {
           try {
@@ -65,7 +68,6 @@ class Storage {
       }
     }
 
-    // fallback fresh
     _store = {};
     await _saveToFile();
   }
@@ -131,6 +133,10 @@ class Storage {
       await _dumpPrettyJson(_store, '${_stripExt(filePath)}.json');
     }
 
+    // pastikan parent ada sebelum menulis
+    await _ensureParentDir(filePath);
+    await _ensureParentDir(_backupPath);
+
     final iv = _secureIv(16);
     final cipherBytes = _encrypt(jsonStr, iv);
     final full = Uint8List(iv.length + cipherBytes.length)
@@ -140,7 +146,6 @@ class Storage {
     final mainFile = File(filePath);
     final backupFile = File(_backupPath);
 
-    // simpan backup lama dulu
     if (await mainFile.exists()) {
       try {
         await backupFile.writeAsBytes(
@@ -208,5 +213,13 @@ class Storage {
   Future<void> _dumpPrettyJson(Map<String, dynamic> m, String path) async {
     final enc = const JsonEncoder.withIndent('    ');
     await File(path).writeAsString(enc.convert(m), flush: true);
+  }
+
+  // === util: pastikan parent folder ada ===
+  Future<void> _ensureParentDir(String path) async {
+    final dir = Directory(File(path).parent.path);
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
   }
 }
