@@ -4,7 +4,7 @@ import '../utils/bytes_converter.dart';
 import '../utils/secrets.dart';
 
 class Session<E> {
-  final E session;
+  E session;
   int upBytes;
   int downBytes;
 
