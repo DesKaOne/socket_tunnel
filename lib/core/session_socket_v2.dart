@@ -157,6 +157,10 @@ class SessionSocketV2<E> {
     _stats.remove(sessionId);
   }
 
+  void removeStats(E sessionId) {
+    _stats.remove(sessionId);
+  }
+
   /// Tutup semua session.
   Future<void> clear() async {
     // tutup semua handler terlebih dahulu
